@@ -30,6 +30,6 @@ The csv file has the format:
 
 One image consits of multiple frames, each frame containing just 56 bytes of payload. A full image requires quite a few frames to transmit. Reception is not perfect, so some blocks are usually missing, but we have some redundancy in the csv, because multiple people are sending in frames, and Stratosat TK-1 usually transmits the same image 3-4 times in a row. 
 
-This tool tires to create just one image filling out the missing pieces. 
+This tool tires to combine these, filling out the missing pieces. 
 
 It's not a bullet proof solution though. Frames are ordered by timestamp, then the header of the first image blocks are examined. If it has not changed since the previous image, it's supposed that we are dealing with the same reception again. 
