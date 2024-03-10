@@ -2,9 +2,17 @@ from io import BytesIO
 from datetime import datetime
 from sys import argv
 from os import path
+from typing import NamedTuple
+
+class ImageData(NamedTuple):
+    start_row: str
+    content: BytesIO
+    outputfile: str
+    offset: int
+    
 
 STRATOSAT_IMAGE_MARKER = "02003E"
-STRATOSAT_HIHGRES_IMAGE_MARKER = "02003E2098"
+STRATOSAT_HIRES_IMAGE_MARKER = "02003E2098"
 
 JPEG_START_MARKER = "FFD8FF"
 JPEG_END_MARKER = "FFD9"
@@ -35,12 +43,10 @@ def main():
 
 
 def get_images(frames):
+
+    image: ImageData = None
     frames = sorted(frames, key=lambda frame: frame["created_at"])
-
-    current_image = None
-    current_header = ""
-    current_offset = 0
-
+    
     for frame in frames:
         row = frame["data"].upper()
 
@@ -48,33 +54,34 @@ def get_images(frames):
 
         if header.startswith(STRATOSAT_IMAGE_MARKER):
             if payload.startswith(JPEG_START_MARKER):
-
-                if current_header != header:
-                    current_image = BytesIO()
-                    current_header = header
-                    current_offset = int.from_bytes(bytes.fromhex(header[10:16]), byteorder="little")
-
-                    if header.startswith(STRATOSAT_HIHGRES_IMAGE_MARKER):
-                        outfile = "hires-" + frame["created_at"].isoformat() + ".jpg"
+                if not image or image.start_row != row:
+                    if header.startswith(STRATOSAT_HIRES_IMAGE_MARKER):
+                        outputfile = "hires-" + frame["created_at"].isoformat() + ".jpg"
                     else:
-                        outfile = frame["created_at"].isoformat() + ".jpg"
+                        outputfile = frame["created_at"].isoformat() + ".jpg"
 
-            addr = int.from_bytes(bytes.fromhex(header[10:16]), byteorder="little") - current_offset
+                    offset = int.from_bytes(bytes.fromhex(header[10:16]), byteorder="little")
 
-            if not current_image:
-                print("Missing .jpg start block, skipping")
-            elif addr < 0:
-                print(f"{outfile} negative addr {addr}, skipping payload")
-            else:
-                current_image.seek(addr)
-                current_image.write(bytes.fromhex(payload))
+                    image = ImageData(
+                        start_row=row, 
+                        content=BytesIO(), 
+                        outputfile=outputfile,
+                        offset=offset
+                    )
 
-                if JPEG_END_MARKER in payload:
-                    print(f"Writing {outfile}")
-                    with open(outfile, "wb") as f:
-                        f.write(current_image.getbuffer())
+            if image:
+                addr = int.from_bytes(bytes.fromhex(header[10:16]), byteorder="little") - image.offset
+                if addr < 0:
+                    print(f"{image.outputfile} negative addr {addr}, skipping payload")
+                else:
+                    image.content.seek(addr)
+                    image.content.write(bytes.fromhex(payload))
+
+                    if JPEG_END_MARKER in payload:
+                        print(f"Writing {image.outputfile}")
+                        with open(image.outputfile, "wb") as f:
+                            f.write(image.content.getbuffer())
 
 
 if __name__ == "__main__":
-
     main()
