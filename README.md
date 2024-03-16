@@ -1,6 +1,6 @@
-# Bulk decoder for Stratosat TK-1 imagery
+# Bulk decoder for Stratosat TK-1 and Geoscan-Edelveis imagery
 
-This simple tool decodes images contained in a csv export of Stratosat TK-1 frames from satnogs.db. 
+This simple tool decodes images contained in a csv export of Stratosat TK-1 / Geoscan-Edelveis frames from satnogs.db. 
 
 ![](images/2024-03-09T08:25:47.jpg)
 
