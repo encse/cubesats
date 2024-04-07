@@ -4,7 +4,7 @@ from os import path
 from typing import NamedTuple, List, Iterable
 import argparse
 
-STRATOSAT_IMAGE_MARKER = "02003E"
+GEOSCAN_IMAGE_MARKERS = ["01003E"] 
 
 JPEG_START_MARKER = "FFD8FF"
 JPEG_END_MARKER = "FFD9"
@@ -21,14 +21,13 @@ class Frame(NamedTuple):
 def main():
 
     parser = argparse.ArgumentParser(
-        description="Process Stratosat-TK1 images.",
-        epilog="You can request a csv export at https://db.satnogs.org/satellite/BQFG-5755-4293-7808-3570",
+        description="Process Geoscan-Edelveis images.",
+        epilog="You can request a csv export at https://db.satnogs.org/satellite/QNCD-8954-6090-5430-2718"
     )
     parser.add_argument('--type', choices=['kss', 'hex', 'csv'], help='Type of processing')
     parser.add_argument('file', help='Input file for processing')
 
     args = parser.parse_args()
-
 
     if not path.exists(args.file):
         print(f"File not found: {args.file}")
@@ -48,7 +47,7 @@ def main():
     else:
         print("Invalid processing type specified.")
         exit(1)
-    
+
     for index, image in enumerate(get_images(frames)):
         filename = filename_base + "-" +  str(index).zfill(5) + ".jpg"
         print(filename)
@@ -62,7 +61,7 @@ def epoch() -> datetime:
 
 def parse_hexfile(epoch: datetime, f) -> List[Frame]:
     frames = []
-    for row in open(f, "r"):
+    for row in f:
         row = row.replace(' ', '').strip()
         if '|' in row:
             row = row.split('|')[-1]
@@ -97,31 +96,27 @@ def parse_cssfile(file:str) -> List[Frame]:
 
 def get_images(frames: List[Frame]) -> Iterable[ImageData]:
     image: ImageData
-    frames = sorted(frames, key=lambda frame: frame.created_at)
 
+    frames = sorted(frames, key=lambda frame: frame.created_at)
     for frame in frames:
         row = frame.data.upper()
 
         (header, payload) = (row[:16], row[16:])
 
-        if header.startswith(STRATOSAT_IMAGE_MARKER):
+        if any(header.startswith(marker) for marker in GEOSCAN_IMAGE_MARKERS):
             if payload.startswith(JPEG_START_MARKER):
-                 if not image or image.start_row != row:
+                if not image or image.start_row != row:
                     if image:
                         yield image
-
-                    offset = int.from_bytes(
-                        bytes.fromhex(header[10:16]), byteorder="little"
-                    )
-
+                    offset = int.from_bytes(bytes.fromhex(header[10:14]), byteorder="little")
                     image = ImageData(
-                        start_row=row,
-                        content=BytesIO(),
+                        start_row=row, 
+                        content=BytesIO(), 
                         offset=offset,
                     )
 
             if image:
-                addr = int.from_bytes(bytes.fromhex(header[10:16]), byteorder="little")
+                addr = int.from_bytes(bytes.fromhex(header[10:14]), byteorder="little")
                 addr = addr - image.offset 
                 if addr >= 0:
                     image.content.seek(addr)
@@ -129,7 +124,6 @@ def get_images(frames: List[Frame]) -> Iterable[ImageData]:
 
     if image:
         yield image
-
 
 if __name__ == "__main__":
     main()

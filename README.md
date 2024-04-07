@@ -1,9 +1,9 @@
 # Bulk decoder for Stratosat TK-1 and Geoscan-Edelveis imagery
 
-This simple tool decodes images contained in a csv export of Stratosat TK-1 / Geoscan-Edelveis frames from satnogs.db. 
+This tool decodes images received from Stratosat TK-1 / Geoscan-Edelveis satellites. Supported formats are: kss, hex dump and
+csv files exported from the Satnogs database.
 
 ![](images/2024-03-09T08:25:47.jpg)
-
 
 You can request a csv from https://db.satnogs.org/satellite/BQFG-5755-4293-7808-3570. 
 
