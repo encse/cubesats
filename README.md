@@ -28,7 +28,7 @@ or use the provided shell script
 ```
 
 
-This command will spin up a docker container for you, invoke stratrosat.py with the wav file you specify. `gr-satellites` is used to extract the `kss` frames from the audio, then the image(s) will be placed next to the `wav` file. That wav should be in the current directory (or you need to adjust the volume mapping)
+This command will spin up a docker container for you, invoke stratrosat.py with the wav file you specify. `gr-satellites` is used to extract the `kss` frames from the audio, then the image(s) will be placed next to the `wav` file. The input file should be in the current directory (or you need to adjust the volume mapping).
 
 ## Direct usage
 
