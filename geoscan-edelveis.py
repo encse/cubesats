@@ -1,11 +1,13 @@
 from io import BytesIO
 from datetime import datetime
 from os import path
+import os
 from typing import NamedTuple, List, Iterable
 import argparse
+import subprocess
 
+GR_SATELLITES_EXE = "/usr/bin/gr_satellites"
 GEOSCAN_IMAGE_MARKERS = ["01003E"] 
-
 JPEG_START_MARKER = "FFD8FF"
 JPEG_END_MARKER = "FFD9"
 
@@ -24,7 +26,7 @@ def main():
         description="Process Geoscan-Edelveis images.",
         epilog="You can request a csv export at https://db.satnogs.org/satellite/QNCD-8954-6090-5430-2718"
     )
-    parser.add_argument('--type', choices=['kss', 'hex', 'csv'], help='Type of processing')
+    parser.add_argument('--type', choices=['wav', 'kss', 'hex', 'csv'], help='Type of processing')
     parser.add_argument('file', help='Input file for processing')
 
     args = parser.parse_args()
@@ -38,7 +40,9 @@ def main():
     if not args.type:
         args.type = extension.lstrip('.')
 
-    if args.type == 'kss':
+    if args.type == 'wav':
+        frames = parse_wavfile(epoch(), args.file)
+    elif args.type == 'kss':
         frames = parse_kissfile(epoch(), args.file)
     elif args.type == 'hex':
         frames = parse_hexfile(epoch(), args.file)
@@ -70,6 +74,24 @@ def parse_hexfile(epoch: datetime, f) -> List[Frame]:
             frames.append(frame)
     return frames
 
+
+def parse_wavfile(epoch:datetime, f:str) -> List[Frame]:
+    filename_base, _ = path.splitext(f)
+    kss_file = filename_base+".kss"
+
+    try: 
+        result = subprocess.run([GR_SATELLITES_EXE, "GEOSCAN", "--wavfile", f, "--kiss_out", kss_file]) 
+
+        exit_code = result.returncode
+        if exit_code != 0:
+            print(f'gr_satellites exited with {exit_code}')
+            return []
+
+        return parse_kissfile(epoch=epoch, f=kss_file)
+    finally:
+        os.remove(kss_file)
+
+        
 def parse_kissfile(epoch:datetime, f:str) -> List[Frame]:
     frames = []
     file = open(f, "br")

@@ -14,12 +14,12 @@ Save it to something like BQFG-5755-4293-7808-3570-3524-20240310T132149Z-week.cs
 
 You need to build the container first
 ```
-> docker build -t geoscan  .
+> docker build -t cubesats  .
 ```
 
 Then invoke with:
 ```
-> docker run --rm -v `pwd`:/data geoscan /app/stratosat.py --type=wav audio_434957996Hz_10-41-34_25-05-2024.wav
+> docker run --rm -v `pwd`:/data cubesats /app/stratosat.py --type=wav audio_434957996Hz_10-41-34_25-05-2024.wav
 ```
 
 or use the provided shell script

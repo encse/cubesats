@@ -7,9 +7,7 @@ import argparse
 import subprocess
 
 GR_SATELLITES_EXE = "/usr/bin/gr_satellites"
-
 STRATOSAT_IMAGE_MARKER = "02003E"
-
 JPEG_START_MARKER = "FFD8FF"
 JPEG_END_MARKER = "FFD9"
 
@@ -78,7 +76,7 @@ def parse_hexfile(epoch: datetime, f) -> List[Frame]:
     return frames
 
 def parse_wavfile(epoch:datetime, f:str) -> List[Frame]:
-    filename_base, extension = path.splitext(f)
+    filename_base, _ = path.splitext(f)
     kss_file = filename_base+".kss"
 
     try: 

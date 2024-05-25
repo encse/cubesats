@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker run --rm -v `pwd`:/data geoscan /app/stratosat.py $@
+docker run --rm -v `pwd`:/data cubesats /app/stratosat.py $@
