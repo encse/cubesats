@@ -95,7 +95,7 @@ def parse_cssfile(file:str) -> List[Frame]:
     return frames
 
 def get_images(frames: List[Frame]) -> Iterable[ImageData]:
-    image: ImageData
+    image: ImageData = None
 
     frames = sorted(frames, key=lambda frame: frame.created_at)
     for frame in frames:
