@@ -10,6 +10,7 @@ JPEG_START_MARKER = "FFD8FF"
 JPEG_END_MARKER = "FFD9"
 
 class ImageData(NamedTuple):
+    filename: str
     start_row: str
     content: BytesIO
     offset: int
@@ -25,6 +26,7 @@ def main():
         epilog="You can request a csv export at https://db.satnogs.org/satellite/BQFG-5755-4293-7808-3570",
     )
     parser.add_argument('--type', choices=['kss', 'hex', 'csv'], help='Type of processing')
+    parser.add_argument('--out', required=False, default='', help='output directory')
     parser.add_argument('file', help='Input file for processing')
 
     args = parser.parse_args()
@@ -49,12 +51,11 @@ def main():
         print("Invalid processing type specified.")
         exit(1)
     
-    for index, image in enumerate(get_images(frames)):
-        filename = filename_base + "-" +  str(index).zfill(5) + ".jpg"
-        print(filename)
-
-        with open(filename, "wb") as f:
+    for _, image in enumerate(get_images(frames, path.join(args.out, filename_base))):
+        with open(image.filename, "wb") as f:
             f.write(image.content.getbuffer())
+
+        print(f"{image.filename} saved")
 
 
 def epoch() -> datetime:
@@ -95,10 +96,11 @@ def parse_cssfile(file:str) -> List[Frame]:
             frames.append(frame)
     return frames
 
-def get_images(frames: List[Frame]) -> Iterable[ImageData]:
-    image: ImageData
+def get_images(frames: List[Frame], filename_base: str) -> Iterable[ImageData]:
+    image: ImageData = None
     frames = sorted(frames, key=lambda frame: frame.created_at)
 
+    index = 0
     for frame in frames:
         row = frame.data.upper()
 
@@ -106,7 +108,8 @@ def get_images(frames: List[Frame]) -> Iterable[ImageData]:
 
         if header.startswith(STRATOSAT_IMAGE_MARKER):
             if payload.startswith(JPEG_START_MARKER):
-                 if not image or image.start_row != row:
+                if not image or image.start_row != row:
+
                     if image:
                         yield image
 
@@ -114,11 +117,19 @@ def get_images(frames: List[Frame]) -> Iterable[ImageData]:
                         bytes.fromhex(header[10:16]), byteorder="little"
                     )
 
+            
+                    filename =  filename_base + "-" +  str(index).zfill(5) + ".jpg"
+                    index+=1
+
+                    print(f"{filename} start")
                     image = ImageData(
+                        filename=filename,
                         start_row=row,
                         content=BytesIO(),
                         offset=offset,
                     )
+                else:
+                    print(f"{filename} retransmit")
 
             if image:
                 addr = int.from_bytes(bytes.fromhex(header[10:16]), byteorder="little")
