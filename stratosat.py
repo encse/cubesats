@@ -1,8 +1,12 @@
 from io import BytesIO
 from datetime import datetime
 from os import path
+import os
 from typing import NamedTuple, List, Iterable
 import argparse
+import subprocess
+
+GR_SATELLITES_EXE = "/usr/bin/gr_satellites"
 
 STRATOSAT_IMAGE_MARKER = "02003E"
 
@@ -25,12 +29,11 @@ def main():
         description="Process Stratosat-TK1 images.",
         epilog="You can request a csv export at https://db.satnogs.org/satellite/BQFG-5755-4293-7808-3570",
     )
-    parser.add_argument('--type', choices=['kss', 'hex', 'csv'], help='Type of processing')
+    parser.add_argument('--type', choices=['wav', 'kss', 'hex', 'csv'], help='Type of processing')
     parser.add_argument('--out', required=False, default='', help='output directory')
     parser.add_argument('file', help='Input file for processing')
 
     args = parser.parse_args()
-
 
     if not path.exists(args.file):
         print(f"File not found: {args.file}")
@@ -41,7 +44,9 @@ def main():
     if not args.type:
         args.type = extension.lstrip('.')
 
-    if args.type == 'kss':
+    if args.type == 'wav':
+        frames = parse_wavfile(epoch(), args.file)
+    elif args.type == 'kss':
         frames = parse_kissfile(epoch(), args.file)
     elif args.type == 'hex':
         frames = parse_hexfile(epoch(), args.file)
@@ -71,6 +76,23 @@ def parse_hexfile(epoch: datetime, f) -> List[Frame]:
             frame = Frame(created_at=epoch, data=row)
             frames.append(frame)
     return frames
+
+def parse_wavfile(epoch:datetime, f:str) -> List[Frame]:
+    filename_base, extension = path.splitext(f)
+    kss_file = filename_base+".kss"
+
+    try: 
+        result = subprocess.run([GR_SATELLITES_EXE, "STRATOSAT-TK1", "--wavfile", f, "--kiss_out", kss_file]) 
+
+        exit_code = result.returncode
+        if exit_code != 0:
+            print(f'gr_satellites exited with {exit_code}')
+            return []
+
+        return parse_kissfile(epoch=epoch, f=kss_file)
+    finally:
+        os.remove(kss_file)
+
 
 def parse_kissfile(epoch:datetime, f:str) -> List[Frame]:
     frames = []

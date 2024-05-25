@@ -1,6 +1,6 @@
 # Bulk decoder for Stratosat TK-1 and Geoscan-Edelveis imagery
 
-This tool decodes images received from Stratosat TK-1 / Geoscan-Edelveis satellites. Supported formats are: kss, hex dump and
+This tool decodes images received from Stratosat TK-1 / Geoscan-Edelveis satellites. Supported formats are: wav audio, kss, hex dump and
 csv files exported from the Satnogs database.
 
 ![](images/2024-03-09T08:25:47.jpg)
@@ -10,7 +10,27 @@ You can request a csv from https://db.satnogs.org/satellite/BQFG-5755-4293-7808-
 Save it to something like BQFG-5755-4293-7808-3570-3524-20240310T132149Z-week.csv.
 
 
-## Usage
+## Dockerized usage
+
+You need to build the container first
+```
+> docker build -t stratosat  .
+```
+
+Then invoke with:
+```
+> docker run --rm -v `pwd`:/data geoscan /app/stratosat.py --type=wav audio_434957996Hz_10-41-34_25-05-2024.wav
+```
+
+or use the provided shell script
+```
+> ./stratosat.sh --type=wav audio_434957996Hz_10-41-34_25-05-2024.wav
+```
+
+
+This command will spin up a docker container for you, invoke stratrosat.py with the wav file you specify. `gr-satellites` is used to extract the `kss` frames from the audio, then the image(s) will be placed next to the `wav` file. That wav should be in the current directory (or you need to adjust the volume mapping)
+
+## Direct usage
 
 ```
 > python3 stratosat.py BQFG-5755-4293-7808-3570-3524-20240310T132149Z-week.csv
@@ -33,3 +53,5 @@ One image consits of multiple frames, each frame containing just 56 bytes of pay
 This tool tries to combine these, filling out the missing pieces. 
 
 It's not a bullet proof solution though. Frames are ordered by timestamp, then the header of the first image blocks are examined. If it has not changed since the previous image, it's supposed that we are dealing with the same transmission again. 
+
+When using wav mode, gr_satellites` should be in "/usr/bin/gr_satellites". (That's how the dockerfile is built.)
