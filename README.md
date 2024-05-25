@@ -32,4 +32,4 @@ One image consits of multiple frames, each frame containing just 56 bytes of pay
 
 This tool tries to combine these, filling out the missing pieces. 
 
-It's not a bullet proof solution though. Frames are ordered by timestamp, then the header of the first image blocks are examined. If it has not changed since the previous image, it's supposed that we are dealing with the same reception again. 
+It's not a bullet proof solution though. Frames are ordered by timestamp, then the header of the first image blocks are examined. If it has not changed since the previous image, it's supposed that we are dealing with the same transmission again. 
