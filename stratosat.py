@@ -28,6 +28,7 @@ def main():
         epilog="You can request a csv export at https://db.satnogs.org/satellite/BQFG-5755-4293-7808-3570",
     )
     parser.add_argument('--type', choices=['wav', 'kss', 'hex', 'csv'], help='Type of processing')
+    parser.add_argument('--single', action=argparse.BooleanOptionalAction, help='combine all data into a single image')
     parser.add_argument('--out', required=False, default='', help='output directory')
     parser.add_argument('file', help='Input file for processing')
 
@@ -53,8 +54,15 @@ def main():
     else:
         print("Invalid processing type specified.")
         exit(1)
-    
-    for _, image in enumerate(get_images(frames, path.join(args.out, filename_base))):
+
+    if args.single:
+        print("single image mode")
+        image_provider = get_single_image
+    else:
+        print("multiple image mode")
+        image_provider = get_images
+
+    for _, image in enumerate(image_provider(frames, path.join(args.out, filename_base))):
         with open(image.filename, "wb") as f:
             f.write(image.content.getbuffer())
 
@@ -116,10 +124,47 @@ def parse_cssfile(file:str) -> List[Frame]:
             frames.append(frame)
     return frames
 
+def get_single_image(frames: List[Frame], filename_base: str) -> Iterable[ImageData]:
+    image: ImageData = None
+    frames = sorted(frames, key=lambda frame: frame.created_at)
+    index = 0
+    for frame in frames:
+        row = frame.data.upper()
+
+        (header, payload) = (row[:16], row[16:])
+
+        if header.startswith(STRATOSAT_IMAGE_MARKER):
+            if payload.startswith(JPEG_START_MARKER):
+                offset = int.from_bytes(
+                    bytes.fromhex(header[10:16]), byteorder="little"
+                )
+        
+                filename =  filename_base + "-" +  str(index).zfill(5) + ".jpg"
+                print(f"{filename} start")
+                image = ImageData(
+                    filename=filename,
+                    start_row=row,
+                    content=BytesIO(),
+                    offset=offset,
+                )
+                break
+
+    
+    if image:
+        for frame in frames:
+            row = frame.data.upper()
+            (header, payload) = (row[:16], row[16:])
+            addr = int.from_bytes(bytes.fromhex(header[10:16]), byteorder="little")
+            addr = addr - image.offset 
+            if addr >= 0:
+                image.content.seek(addr)
+                image.content.write(bytes.fromhex(payload))
+       
+        yield image
+
 def get_images(frames: List[Frame], filename_base: str) -> Iterable[ImageData]:
     image: ImageData = None
     frames = sorted(frames, key=lambda frame: frame.created_at)
-
     index = 0
     for frame in frames:
         row = frame.data.upper()
