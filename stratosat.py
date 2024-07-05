@@ -62,11 +62,16 @@ def main():
         print("multiple image mode")
         image_provider = get_images
 
+    any_image = False
     for _, image in enumerate(image_provider(frames, path.join(args.out, filename_base))):
+        any_image = True
         with open(image.filename, "wb") as f:
             f.write(image.content.getbuffer())
 
-        print(f"{image.filename} saved")
+        print(f"💾 {image.filename} saved")
+
+    if not any_image:
+        print("🤷 could not find jpg header")
 
 
 def epoch() -> datetime:
@@ -135,12 +140,12 @@ def get_single_image(frames: List[Frame], filename_base: str) -> Iterable[ImageD
 
         if header.startswith(STRATOSAT_IMAGE_MARKER):
             if payload.startswith(JPEG_START_MARKER):
+                print("🎲 Found jpeg header")
                 offset = int.from_bytes(
                     bytes.fromhex(header[10:16]), byteorder="little"
                 )
         
                 filename =  filename_base + "-" +  str(index).zfill(5) + ".jpg"
-                print(f"{filename} start")
                 image = ImageData(
                     filename=filename,
                     start_row=row,
@@ -149,8 +154,8 @@ def get_single_image(frames: List[Frame], filename_base: str) -> Iterable[ImageD
                 )
                 break
 
-    
     if image:
+        print("🛰  processing all frames with the header now")
         for frame in frames:
             row = frame.data.upper()
             (header, payload) = (row[:16], row[16:])
@@ -185,8 +190,8 @@ def get_images(frames: List[Frame], filename_base: str) -> Iterable[ImageData]:
             
                     filename =  filename_base + "-" +  str(index).zfill(5) + ".jpg"
                     index+=1
-
-                    print(f"{filename} start")
+                    print(f"🎲 Found jpeg header")
+                    print(f"🛰 {filename} transmission")
                     image = ImageData(
                         filename=filename,
                         start_row=row,
@@ -194,7 +199,7 @@ def get_images(frames: List[Frame], filename_base: str) -> Iterable[ImageData]:
                         offset=offset,
                     )
                 else:
-                    print(f"{filename} retransmit")
+                    print(f"🛰 {filename} retransmit")
 
             if image:
                 addr = int.from_bytes(bytes.fromhex(header[10:16]), byteorder="little")
